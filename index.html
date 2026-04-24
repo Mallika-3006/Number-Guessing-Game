@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Advanced Number Guessing Game</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+        }
+
+        .container {
+            background: white;
+            color: black;
+            padding: 30px;
+            margin: auto;
+            width: 430px;
+            border-radius: 15px;
+            margin-top: 70px;
+            box-shadow: 0px 0px 15px #333;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        input, select {
+            padding: 10px;
+            width: 80%;
+            margin: 8px;
+            font-size: 15px;
+            border-radius: 8px;
+            border: 1px solid gray;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+            background-color: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        button:hover {
+            background-color: #4b5ed7;
+        }
+
+        #result {
+            font-size: 18px;
+            margin-top: 20px;
+            font-weight: bold;
+            color: #222;
+        }
+
+        #timer {
+            color: #444;
+            font-weight: bold;
+        }
+
+        #scores {
+            background-color: #f2f2f2;
+            padding: 10px;
+            text-align: left;
+            height: 120px;
+            overflow-y: auto;
+            border-radius: 8px;
+            color: #111;
+        }
+
+        .fade {
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h2>Number Guessing Game</h2>
+
+        <input type="text" id="username" placeholder="Enter your name">
+
+        <select id="difficulty">
+            <option value="easy">Easy: 1 - 50</option>
+            <option value="medium">Medium: 1 - 100</option>
+            <option value="hard">Hard: 1 - 200</option>
+        </select>
+
+        <br>
+
+        <button onclick="startGame()">Start Game</button>
+
+        <br>
+
+        <input type="number" id="guess" placeholder="Enter your guess">
+
+        <br>
+
+        <button onclick="guessNumber()">Submit Guess</button>
+
+        <p id="timer">Time: 0 sec</p>
+
+        <p id="result"></p>
+
+        <h3>Scoreboard</h3>
+        <pre id="scores"></pre>
+
+    </div>
+
+    <script>
+        let startTime;
+        let timerInterval;
+
+        function startGame() {
+            let username = document.getElementById("username").value;
+            let diff = document.getElementById("difficulty").value;
+
+            if (username.trim() === "") {
+                alert("Please enter your name first.");
+                return;
+            }
+
+            fetch("/start?level=" + diff)
+                .then(res => res.text())
+                .then(data => {
+                    document.getElementById("result").innerText = data;
+                    document.getElementById("guess").value = "";
+
+                    startTime = Date.now();
+
+                    clearInterval(timerInterval);
+
+                    timerInterval = setInterval(() => {
+                        let t = Math.floor((Date.now() - startTime) / 1000);
+                        document.getElementById("timer").innerText = "Time: " + t + " sec";
+                    }, 1000);
+
+                    loadScores();
+                });
+        }
+
+        function guessNumber() {
+            let guess = document.getElementById("guess").value;
+            let username = document.getElementById("username").value;
+            let timeTaken = Math.floor((Date.now() - startTime) / 1000);
+
+            if (username.trim() === "") {
+                alert("Please enter your name.");
+                return;
+            }
+
+            if (guess === "") {
+                alert("Please enter a guess.");
+                return;
+            }
+
+            fetch("/guess?number=" + guess + "&name=" + username + "&time=" + timeTaken)
+                .then(res => res.text())
+                .then(data => {
+                    let resultBox = document.getElementById("result");
+                    resultBox.innerText = data;
+
+                    resultBox.classList.remove("fade");
+                    void resultBox.offsetWidth;
+                    resultBox.classList.add("fade");
+
+                    if (data.includes("Correct")) {
+                        clearInterval(timerInterval);
+                        loadScores();
+                        playSound();
+                    }
+                });
+        }
+
+        function loadScores() {
+            fetch("/scores")
+                .then(res => res.text())
+                .then(data => {
+                    document.getElementById("scores").innerText = data;
+                });
+        }
+
+        function playSound() {
+            let audio = new Audio("https://www.soundjay.com/buttons/sounds/button-3.mp3");
+            audio.play();
+        }
+
+        loadScores();
+    </script>
+
+</body>
+</html>
